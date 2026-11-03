@@ -116,6 +116,22 @@ published with each release whose engine changed; `docs/releasing.md`). After an
 (`scripts/agent/engine-build`, or `scripts/agent/locked chromium -- autoninja -C out/Release_GN_arm64 chrome_framework`)
 and the next app build picks it up.
 
+### Intel local builds
+
+The app's Debug and Release targets allow both `arm64` and `x86_64`; `pnpm build` and `pnpm macos` select the host
+architecture. Published ArdiaCore prebuilts are still **arm64 only**. Changing the app's architecture cannot convert
+that engine into an Intel binary, and Intel cannot run an arm64 framework.
+
+An Intel build needs the matching patched Chromium engine compiled with GN's `target_cpu="x64"`. The app looks for
+it under `out/Release_GN_x64/Chromium Framework.framework`, or at the path in `ARDIACORE_FRAMEWORK`:
+
+```bash
+ARDIACORE_FRAMEWORK="/path/to/x64/Chromium Framework.framework" pnpm build
+```
+
+This must be Ardia's engine matching this checkout, not a stock Chromium framework. The engine bootstrap and published
+release pipeline currently target Apple Silicon; the app-target changes alone do not provide full Intel support.
+
 ## Our hooks in Chrome's code
 
 Where our patches and `engine/ardiacore/apply.sh` let ArdiaCore decide something in Chrome's code, the hook is a

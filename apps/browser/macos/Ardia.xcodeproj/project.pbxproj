@@ -378,7 +378,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B061BE5464342E57C82A2F6C /* Pods-Ardia-macOS.debug.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				ARDIACORE_STAGE_DIR = "$(OBJROOT)/ArdiaCoreFramework";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -413,7 +413,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C35C3DFDC1BA58B94EE6A74C /* Pods-Ardia-macOS.release.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				ARDIACORE_STAGE_DIR = "$(OBJROOT)/ArdiaCoreFramework";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

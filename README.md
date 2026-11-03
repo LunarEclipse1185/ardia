@@ -128,6 +128,9 @@ is newer than the last release's, work from a release tag (`v0.2.30`, say), or r
 `packages/ardiacore/scripts/fetch-engine.sh --nearest` to build against the newest prebuilt anyway. Passkeys and saved
 cards need our team ID and won't work in a build signed by anyone else.
 
+Local builds select the Mac's architecture, including `x86_64` on Intel. Intel still requires a matching ArdiaCore
+engine built from source; there is no Intel prebuilt. See [Intel local builds](docs/engine-build.md#intel-local-builds).
+
 To change the engine itself (anything under `engine/`), build it from source: Chrome's framework from our patched
 Chromium tree in `~/chromium-build` (Chromium 156.0.8078.79 with the patch series in `engine/patches`;
 `docs/engine-build.md` › "Rebuilding", then `engine/chromium/apply.sh`,

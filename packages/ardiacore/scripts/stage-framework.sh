@@ -40,6 +40,12 @@ if [[ "${1:-}" == --publish ]]; then
 fi
 
 [[ -d "$src" ]] || { echo "error: no ArdiaCore framework at $src (engine/ardiacore/apply.sh, then build chrome_framework)" >&2; exit 1; }
+for arch in ${ARCHS:-$(uname -m)}; do
+  lipo -verify_arch "$arch" "$src/Versions/Current/$name" >/dev/null 2>&1 || {
+    echo "error: ArdiaCore at $src does not contain $arch; set ARDIACORE_FRAMEWORK to a matching Chromium Framework.framework (docs/engine-build.md)" >&2
+    exit 1
+  }
+done
 stamp="$dest/.stamp"
 
 fill_cache() {
