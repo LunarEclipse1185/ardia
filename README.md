@@ -1,3 +1,12 @@
+## Note
+
+**This is an experimental Intel Mac fork, done by AI with some human supervision. This repository adds an x86_64 build target of Ardia. I use it on macOS 15.7.9. Intel release files are prepared separately from upstream's Apple Silicon releases; see [Intel release notes](docs/intel-release.md).**
+
+1. **Intel build changes.** Architecture-aware app and Chromium build scripts, Xcode architecture settings, and older-SDK compile guards. Added `scripts/lib/architectures.test.mjs`, `scripts/release/prepare-intel.sh`, and `docs/intel-release.md` for regression checks and separate Intel release preparation.
+2. **Ad-hoc signed, not notarized.** These builds do not use upstream's Apple Developer identity or provisioning profile. Their signatures provide integrity checks, not a verified developer identity; Gatekeeper may block the first launch.
+3. **Hardened runtime and shared keychain groups are omitted in personal builds.** This is to allow running with the embedded frameworks that is compiled without a common Apple signing Team ID. The passkey/payment keychain groups require upstream's provisioning profile, so they are removed too.
+
+
 <p align="center">
   <img src="apps/site/src/assets/app-icon.png" width="128" height="128" alt="Ardia's app icon">
 </p>
@@ -82,7 +91,7 @@ Not WebKit. Not Electron. Every window is Chrome’s own, so sites, extensions a
 | Translate | On your Mac. Nothing leaves it. | ✓ macOS 26 |
 | Passkeys | Touch ID yes. iCloud Keychain waits on Apple. | ~ Partly |
 | Netflix and DRM | Streaming sites open in WebKit, where they play. Widevine in Chromium waits on Google. | ~ Partly |
-| Intel Macs | Apple Silicon only. | ✗ No |
+| **Intel Macs** | **Experimental x86_64 build in this fork; tested on macOS 15.7.9.** | **~ Experimental** |
 
 <h3 align="center">
   <a href="https://github.com/mantrakp04/ardia/releases/download/v0.2.44/Ardia-0.2.44.dmg">Download Ardia 0.2.44</a>
