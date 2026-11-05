@@ -104,3 +104,25 @@ test("engine compilation uses the configured output and fails fast", () => {
   assert.ok(build.includes('${KEEP_GOING:-1}'));
   assert.ok(read("engine/patches/build/01-sync.sh").includes("target_cpu = ['$TARGET_CPU']"));
 });
+
+test("app build helper cross-compiles only x86_64 on an arm64 host", (t) => {
+  const { dir, env, executable } = fixture(t, "arm64");
+  const agent = join(dir, "scripts/agent");
+  mkdirSync(agent, { recursive: true });
+  mkdirSync(join(dir, "scripts/lib"), { recursive: true });
+  mkdirSync(join(dir, "apps/browser"), { recursive: true });
+  writeFileSync(join(agent, "build-app"), read("scripts/agent/build-app"), { mode: 0o755 });
+  writeFileSync(join(dir, "scripts/lib/paths.sh"), read("scripts/lib/paths.sh"));
+  writeFileSync(join(agent, "locked"), '#!/bin/bash\nwhile [[ "$1" != -- ]]; do shift; done\nshift\nexec "$@"\n', { mode: 0o755 });
+  executable("git", "exit 0");
+  executable("xcodebuild", 'printf "%s\\n" "$@" > "$XCODE_ARGS_FILE"; echo "** BUILD SUCCEEDED **"');
+  const argsFile = join(dir, "xcode-args");
+  const result = spawnSync("/bin/bash", [join(agent, "build-app"), "--as", "cross-test", "--config", "Release"], {
+    env: { ...env, TARGET_CPU: "x64", XCODE_ARGS_FILE: argsFile }, encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const args = readFileSync(argsFile, "utf8").split("\n");
+  assert.ok(args.includes("generic/platform=macOS"));
+  assert.ok(args.includes("ARCHS=x86_64"));
+  assert.ok(args.includes("ONLY_ACTIVE_ARCH=YES"));
+});
