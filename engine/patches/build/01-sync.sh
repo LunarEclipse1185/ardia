@@ -14,6 +14,7 @@ solutions = [{'managed': False, 'name': 'src',
   'custom_vars': {'checkout_pgo_profiles': True, 'source_tarball': False, 'siso_version': 'latest'},
   'custom_deps': {}, 'deps_file': 'DEPS', 'safesync_url': ''}]
 target_os = ['mac']
+target_cpu = ['$TARGET_CPU']
 GCLIENT
 if [ -d src/.git ]; then
   lowprio_net timeout 3600 git -C src fetch --depth=1 --no-tags origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"

@@ -10,7 +10,12 @@ export HELIUM_TAG=0.20.3
 export HELIUM_MACOS_TAG=0.20.3.1
 export HELIUM_DIR="$CB/helium"
 export HELIUM_MACOS_DIR="$CB/helium-macos"
-export GN_OUT_CONFIGS=Release_GN_arm64
+export TARGET_CPU="${TARGET_CPU:-arm64}"
+case "$TARGET_CPU" in
+  arm64 | x64) ;;
+  *) echo "unsupported TARGET_CPU: $TARGET_CPU" >&2; return 64 ;;
+esac
+export GN_OUT_CONFIGS="${GN_OUT_CONFIGS:-Release_GN_$TARGET_CPU}"
 lowprio() { taskpolicy -b nice -n 19 "$@"; }
 lowprio_net() { taskpolicy -c utility -d throttle nice -n 19 "$@"; }
 export DEPOT_TOOLS_METRICS=0

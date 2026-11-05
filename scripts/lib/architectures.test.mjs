@@ -16,7 +16,7 @@ function fixture(t, arch) {
   mkdirSync(bin);
   const executable = (name, body) => writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
   executable("uname", `echo ${arch}`);
-  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, CHROMIUM_SRC: join(dir, "chromium"), ARDIACORE_FRAMEWORK: "" };
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, CHROMIUM_SRC: join(dir, "chromium"), ARDIACORE_FRAMEWORK: "", TARGET_CPU: "", GN_OUT_CONFIGS: "" };
   return { dir, env, executable };
 }
 
@@ -73,4 +73,34 @@ test("staging rejects an incompatible engine before copying it", (t) => {
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /does not contain x86_64/);
+});
+
+for (const cpu of ["arm64", "x64"]) {
+  test(`engine configuration consistently selects ${cpu}`, (t) => {
+    const { env } = fixture(t, "arm64");
+    const result = spawnSync("/bin/bash", ["-c", '. "$1"; . "$2"; . "$3"; printf "%s\\n" "$GN_OUT_CONFIGS" "$chromium_out" "$GN_DEFINES"', "_",
+      join(root, "engine/patches/build/env.sh"), join(root, "engine/patches/build/gn_defines.sh"), join(root, "scripts/lib/paths.sh")], {
+      env: { ...env, TARGET_CPU: cpu }, encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.stdout.split("\n").includes(`Release_GN_${cpu}`));
+    assert.ok(result.stdout.split("\n").includes(`out/Release_GN_${cpu}`));
+    assert.ok(result.stdout.includes(`target_cpu="${cpu}"`));
+    assert.ok(result.stdout.includes("chrome_pgo_phase=2"));
+  });
+}
+
+test("engine configuration rejects an unsupported CPU", (t) => {
+  const { env } = fixture(t, "arm64");
+  const result = spawnSync("/bin/bash", ["-c", '. "$1"', "_", join(root, "engine/patches/build/env.sh")], {
+    env: { ...env, TARGET_CPU: "invalid" }, encoding: "utf8",
+  });
+  assert.equal(result.status, 64);
+});
+
+test("engine compilation uses the configured output and fails fast", () => {
+  const build = read("engine/patches/build/05-build.sh");
+  assert.ok(build.includes('-C "out/$GN_OUT_CONFIGS"'));
+  assert.ok(build.includes('${KEEP_GOING:-1}'));
+  assert.ok(read("engine/patches/build/01-sync.sh").includes("target_cpu = ['$TARGET_CPU']"));
 });

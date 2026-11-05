@@ -7,7 +7,7 @@ _gn_args=(
   symbol_level=0 blink_symbol_level=0 v8_symbol_level=0
   is_component_build=false
   forbid_non_component_debug_builds=false
-  target_cpu='"arm64"'
+  target_cpu="\"${TARGET_CPU:-arm64}\""
   # Codecs: H.264 / AAC (VideoToolbox + ffmpeg "Chrome" branding), MPEG2-TS MSE, Widevine.
   proprietary_codecs=true
   'ffmpeg_branding="Chrome"'
