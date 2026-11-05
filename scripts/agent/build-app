@@ -1,12 +1,13 @@
 #!/bin/bash
 # Builds the app into your own derived data, quietly: the full log goes to a file, and you see only what you need.
 #
-#   scripts/agent/build-app [--as NAME] [--config Debug|Release] [--force] [--wait SECS]
+#   scripts/agent/build-app [--as NAME] [--config Debug|Release] [--adhoc] [--force] [--wait SECS]
 #   scripts/agent/build-app -h | --help
 #
 # --as NAME     your agent name (default: $AC_LOCKED_AS, else "dev"). Builds into apps/browser/build-NAME, and is
 #               passed to `locked` so a chromium take of yours covers the engine staging.
 # --config      Debug (default) or Release.
+# --adhoc       personal build without a team profile, shared keychain groups or hardened runtime.
 # --force       build even when no native file changed.
 # --wait SECS   how long to wait for a pod install, or for another build into the same derived data (default 1500).
 #
@@ -30,11 +31,12 @@ usage() {
   exit 64
 }
 
-name=${AC_LOCKED_AS:-dev} config=Debug force="" wait=1500
+name=${AC_LOCKED_AS:-dev} config=Debug force="" adhoc="" wait=1500
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help) help ;;
     --force) force=1; shift; continue ;;
+    --adhoc) adhoc=1; shift; continue ;;
   esac
   [[ $# -ge 2 ]] || { echo "build-app: $1 needs a value" >&2; usage; }
   case "$1" in
@@ -79,6 +81,7 @@ import hashlib, os, sys
 repo, framework = sys.argv[1], sys.argv[2]
 h = hashlib.sha256()
 h.update(sys.argv[3].encode())
+h.update(sys.argv[4].encode())
 for rel in sorted(set(sys.stdin.read().split("\n")) - {""}):
     path = os.path.join(repo, rel)
     if os.path.isfile(path):
@@ -88,7 +91,7 @@ if os.path.exists(binary):
     st = os.stat(binary)
     h.update(("engine %s %d %d" % (framework, st.st_mtime, st.st_size)).encode())
 print(h.hexdigest())
-' "$repo" "$chromium_framework" "$arch"
+' "$repo" "$chromium_framework" "$arch" "$adhoc"
 }
 
 stamp=$(native_stamp) || { echo "build-app: couldn't hash the native files" >&2; exit 1; }
@@ -99,13 +102,25 @@ fi
 
 start=$(date +%s)
 mkdir -p "$dd"
+signing=()
+if [[ -n "$adhoc" ]]; then
+  python3 - "$app_dir/macos/Ardia-macOS/Ardia.entitlements" "$dd/AdHoc.entitlements" <<'PY'
+import pathlib, plistlib, sys
+entitlements = plistlib.loads(pathlib.Path(sys.argv[1]).read_bytes())
+entitlements.pop("keychain-access-groups", None)
+pathlib.Path(sys.argv[2]).write_bytes(plistlib.dumps(entitlements))
+PY
+  [[ $? -eq 0 ]] || exit 1
+  signing=(CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
+    CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES ENABLE_HARDENED_RUNTIME=NO "CODE_SIGN_ENTITLEMENTS=$dd/AdHoc.entitlements")
+fi
 
 echo "build-app: $config into ${dd#"$repo"/} (log: ${log#"$repo"/})"
 (
   cd "$app_dir" &&
     "$repo/scripts/agent/locked" xcodebuild --wait "$wait" --as "$name" -- \
       xcodebuild -workspace macos/Ardia.xcworkspace -scheme Ardia-macOS -derivedDataPath "$dd" \
-      -destination "$destination" -configuration "$config" -hideShellScriptEnvironment ARCHS="$arch" ONLY_ACTIVE_ARCH=YES build
+      -destination "$destination" -configuration "$config" -hideShellScriptEnvironment ARCHS="$arch" ONLY_ACTIVE_ARCH=YES ${signing[@]+"${signing[@]}"} build
 ) >"$log" 2>&1
 status=$?
 elapsed=$(($(date +%s) - start))

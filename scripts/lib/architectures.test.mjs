@@ -125,4 +125,18 @@ test("app build helper cross-compiles only x86_64 on an arm64 host", (t) => {
   assert.ok(args.includes("generic/platform=macOS"));
   assert.ok(args.includes("ARCHS=x86_64"));
   assert.ok(args.includes("ONLY_ACTIVE_ARCH=YES"));
+  assert.ok(!args.includes("ENABLE_HARDENED_RUNTIME=NO"));
+  mkdirSync(join(dir, "apps/browser/macos/Ardia-macOS"), { recursive: true });
+  writeFileSync(join(dir, "apps/browser/macos/Ardia-macOS/Ardia.entitlements"), read("apps/browser/macos/Ardia-macOS/Ardia.entitlements"));
+  const adhoc = spawnSync("/bin/bash", [join(agent, "build-app"), "--as", "cross-test", "--config", "Release", "--adhoc"], {
+    env: { ...env, TARGET_CPU: "x64", XCODE_ARGS_FILE: argsFile }, encoding: "utf8",
+  });
+  assert.equal(adhoc.status, 0, adhoc.stdout + adhoc.stderr);
+  const signedArgs = readFileSync(argsFile, "utf8").split("\n");
+  assert.ok(signedArgs.includes("CODE_SIGN_IDENTITY=-"));
+  assert.ok(signedArgs.includes("CODE_SIGNING_REQUIRED=YES"));
+  assert.ok(signedArgs.includes("ENABLE_HARDENED_RUNTIME=NO"));
+  const entitlements = readFileSync(join(dir, "apps/browser/build-cross-test/AdHoc.entitlements"), "utf8");
+  assert.ok(!entitlements.includes("keychain-access-groups"));
+  assert.ok(entitlements.includes("com.apple.security.device.camera"));
 });
